@@ -953,7 +953,7 @@ function startExam(){
 let STARTED=false;
 function APP_START(){document.getElementById("appRoot").hidden=false;document.querySelector(".tabs").hidden=false;document.getElementById("login").hidden=true;R={tab:"home",cid:null,ctab:"ders"};render();
   if(!STARTED&&/gunluk/.test(location.hash))setTimeout(openDaily,400);STARTED=true}
-function APP_STOP(){closeS();document.getElementById("appRoot").hidden=true;document.querySelector(".tabs").hidden=true}
+function APP_STOP(){if(!STARTED){document.getElementById("appRoot").hidden=true;document.querySelector(".tabs").hidden=true;return}try{closeS()}catch(e){}document.getElementById("appRoot").hidden=true;document.querySelector(".tabs").hidden=true}
 document.querySelector(".tabs").hidden=true;
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 </script>

@@ -69,7 +69,7 @@ async function boot() {
   db = F.getFirestore(app);
   A.getRedirectResult(auth).catch(e => drawLogin(errMsg(e)));
   A.onAuthStateChanged(auth, async u => {
-    if (!u) { user = null; ref = null; window.APP_STOP && APP_STOP(); drawLogin(); return; }
+    if (!u) { user = null; ref = null; try { window.APP_STOP && APP_STOP(); } catch (e) {} drawLogin(); return; }
     drawSplash();
     user = u; ref = F.doc(db, "users", u.uid);
     let remote = null;
