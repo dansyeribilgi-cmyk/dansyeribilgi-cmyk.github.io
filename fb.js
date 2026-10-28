@@ -103,8 +103,9 @@ async function google() {
   setErr(""); busy(true);
   const p = new A.GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
   try {
-    if (isStandalone()) await A.signInWithRedirect(auth, p); // ana ekrandan açılan uygulamada açılır pencere sorun çıkarır
-    else await A.signInWithPopup(auth, p);
+    // Önce her zaman açılır pencere: yönlendirme (redirect) yöntemi github.io'da tarayıcıların
+    // üçüncü taraf depolama engeli yüzünden girişi kaybedip giriş ekranına geri döndürüyor.
+    await A.signInWithPopup(auth, p);
   } catch (e) {
     if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") { try { await A.signInWithRedirect(auth, p); return; } catch (e2) { e = e2; } }
     busy(false);
