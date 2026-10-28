@@ -31,7 +31,7 @@ function drawLogin(note = "") {
   LOGIN.innerHTML = `
   <span class="lg">${typeof LOGO !== "undefined" ? LOGO : ""}</span>
   <h1>Antrenörlük<br>Eğitimi</h1>
-  <p>Kademe 1 sınavına her gün birkaç dakikayla hazırlan. İlerlemen hesabına kaydedilir, hangi cihazdan girersen gir kaldığın yerden devam edersin.</p>
+  <p>Antrenörlük sınavına (1. ve 2. Kademe) her gün birkaç dakikayla hazırlan. İlerlemen hesabına kaydedilir, hangi cihazdan girersen gir kaldığın yerden devam edersin.</p>
   ${demo ? `<p class="note" style="margin:0">Demo mod: Firebase ayarları henüz girilmedi. İlerleme sadece bu cihazda tutulur.</p>
   <button class="btn" id="demo">Demo olarak devam et</button>` : `
   <button class="btn gbtn" id="g">${GICON}Google ile devam et</button>
@@ -60,7 +60,11 @@ const setErr = (m, ok) => { const el = $("#er"); if (el) { el.textContent = m; e
 const busy = (b) => LOGIN.querySelectorAll("button,input").forEach(x => x.disabled = b);
 
 // ---------- Firebase ----------
-let A, F, M, app, auth, db, user = null, ref = null;
+let A, F, M, app, auth, db, user = null, ref = null, otherLast = null;
+// Kademe: 1 veya 2. Her kademenin ilerlemesi ayrı alanda tutulur (state / state2)
+const KD = () => { try { return localStorage.getItem("ae-kademe") === "2" ? 2 : 1; } catch (e) { return 1; } };
+const FLD = () => KD() === 2 ? "state2" : "state";
+const lastOf = S => S ? ([S.last, S.ex && S.ex.last].filter(Boolean).sort().pop() || null) : null;
 async function boot() {
   [A, F] = await Promise.all([import(G + "firebase-auth.js"), import(G + "firebase-firestore.js")]);
   const { initializeApp } = await import(G + "firebase-app.js");
@@ -75,7 +79,15 @@ async function boot() {
     let remote = null;
     try {
       const snap = await F.getDoc(ref);
-      if (snap.exists()) remote = snap.data().state || null;
+      if (snap.exists()) {
+        const d = snap.data();
+        // başka cihazda kademe değiştirildiyse bir kez ona geç
+        if (d.kademe && d.kademe !== KD() && !sessionStorage.getItem("ae-ksync")) {
+          sessionStorage.setItem("ae-ksync", "1"); localStorage.setItem("ae-kademe", String(d.kademe)); location.reload(); return;
+        }
+        remote = d[FLD()] || null;
+        otherLast = lastOf(d[KD() === 2 ? "state" : "state2"]);
+      }
       else await F.setDoc(ref, { email: u.email || "", name: u.displayName || "", createdAt: F.serverTimestamp() });
     } catch (e) { console.warn("Firestore okunamadı, yerel kayıtla devam", e); }
     startUser(u, remote);
@@ -120,10 +132,11 @@ async function emailSubmit() {
 let timer = null, pending = null;
 function flush() {
   clearTimeout(timer); timer = null;
-  if (!pending || !ref) return;
+  if (!pending || !ref) return Promise.resolve();
   const S = JSON.parse(JSON.stringify(pending)); pending = null;
-  const last = [S.last, S.ex && S.ex.last].filter(Boolean).sort().pop() || null;
-  F.updateDoc(ref, { state: S, lastStudy: last, email: user.email || "", name: user.displayName || "", updatedAt: F.serverTimestamp() })
+  // bildirim için: iki kademeden hangisinde en son çalışıldıysa o gün sayılır
+  const last = [lastOf(S), otherLast].filter(Boolean).sort().pop() || null;
+  return F.updateDoc(ref, { [FLD()]: S, lastStudy: last, email: user.email || "", name: user.displayName || "", updatedAt: F.serverTimestamp() })
     .catch(e => console.warn("Kayıt buluta yazılamadı (internet gelince tekrar denenecek)", e));
 }
 addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
@@ -170,6 +183,11 @@ async function disableNotify() {
 window.FBX = {
   queueSave(S) { if (!ref) return; pending = S; clearTimeout(timer); timer = setTimeout(flush, 1500); },
   enableNotify, disableNotify,
+  async setKademe(k) {
+    if (!ref) return;
+    try { await flush(); await F.updateDoc(ref, { kademe: k }); } catch (e) { console.warn(e); }
+    try { sessionStorage.setItem("ae-ksync", "1"); } catch (e) {}
+  },
   name: () => (user && (user.displayName || (user.email || "").split("@")[0])) || "",
   email: () => (user && user.email) || (window.FB_READY ? "" : "Demo mod · sadece bu cihaz"),
   async signOut() {
