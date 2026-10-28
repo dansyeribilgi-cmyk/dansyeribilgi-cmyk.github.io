@@ -1,0 +1,1 @@
+{ "name": "antrenorluk-notifier", "private": true, "type": "commonjs", "dependencies": { "firebase-admin": "^12.1.0" } }

@@ -1,7 +1,7 @@
 /* Antrenörlük Eğitimi service worker: çevrimdışı açılış + arka plan bildirimleri */
-const VER = "a7202c4efe";
+const VER = "0600849c88";
 const CACHE = "ae-" + VER;
-const SHELL = ["/", "/manifest.webmanifest", "/firebase-config.js", "/fb.js", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-180.png"];
+const SHELL = ["/", "/manifest.webmanifest", "/firebase-config.js", "/fb.js", "/icon-192.png", "/icon-512.png", "/apple-180.png"];
 
 importScripts("/firebase-config.js");
 if (self.FB_READY) {
